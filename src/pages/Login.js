@@ -17,24 +17,30 @@ const Login = () => {
       password: hashedPassword,
     };
    
-    axios.post('http://localhost:9010/login', formData)
+    axios.post('http://localhost:9010/login', formData,{
+      withCredentials:true
+        })
       .then(response => {
         console.log(response.headers);
        // Get the session ID from the response
        const sessionID = response.headers['session-id'];
        if (sessionID) {
-        sessionStorage.setItem('sessionID', sessionID);
-          console.log('Session ID:', sessionID);
+        console.log(sessionID)
+    
+
+        document.cookie = `session-id=${encodeURI(sessionID)}; path=/`;
+          console.log('Session ID:', document.cookie);
         // Continue with further actions
+
       } else {
         console.log('Session ID not found in response headers');
         // Handle the case where session ID is not present
       }
        // Set the session ID as a cookie
        // Redirect to the movie page
-       setTimeout(() => {
-         window.location.href = '/movies'; // Redirect to '/movies' after 10 seconds
-       }, 10000);
+      //  setTimeout(() => {
+      //    window.location.href = '/movies'; // Redirect to '/movies' after 10 seconds
+      //  }, 10000);
       })
       .catch(error => {
         if (error.response && error.response.status === 307) {

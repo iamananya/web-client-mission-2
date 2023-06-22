@@ -12,24 +12,32 @@ const MovieDetails = () => {
   const { movieId } = useParams();
   const [movie, setMovie] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const sessionID = sessionStorage.getItem('sessionID');
-  console.log(movieId,sessionID)
-  
+ 
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
   useEffect(() => {
     const fetchMovieDetails = async () => {
       try {
         axios.defaults.withCredentials = true;
-        console.log("Session ID",sessionID)
+      
+        const sessionID = getCookie("session-id");
+        console.log(movieId,sessionID)
+        console.log("Session ID in movie details",sessionID)
         const response = await axios.get(`http://localhost:9010/movies/${movieId}`, {
           headers: {
             'Session-ID': sessionID,
           },
+          withCredentials:true
+
         });
       
         if (response.status === 200) {
           // Request successful, retrieve the movie details
-          const { data } = response.data;
-          setMovie(data);
+          console.log(response.data)
         } else {
           // Handle other status codes
           setMovie(null);
@@ -41,7 +49,7 @@ const MovieDetails = () => {
     };
 
     fetchMovieDetails();
-  }, [movieId, sessionID]);
+  }, [movieId]);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
