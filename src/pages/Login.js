@@ -1,12 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState ,useEffect} from 'react';
 import { Container, Typography, TextField, Button } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
+import Swal from 'sweetalert2';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-const Login = () => {
+const Login = ({ setIsLoggedIn }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  useEffect(() => {
+  const verifyUser = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      try {
+        // Send a GET request to the verification endpoint
+        const response = await axios.get(`http://localhost:9010/register/verify?token=${token}`);
+
+        if (response.status === 200) {
+          setIsVerified(true);
+        } else {
+          setIsVerified(false);
+        }
+      } catch (error) {
+        
+        console.error('Error:', error);
+        setIsVerified(false);
+      }
+    }
+  };
+  verifyUser();
+
+}, []);
+
+  useEffect(() => {
+    if (isVerified) {
+      // Show the Swal message for successful verification
+      Swal.fire({
+        title: 'User Verified',
+        text: 'Your account has been successfully verified.',
+        icon: 'success',
+        confirmButtonText: 'OK',
+      });
+    }
+  }, [isVerified]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,6 +75,18 @@ const Login = () => {
         document.cookie = `session-id=${encodeURI(sessionID)}; path=/`;
           console.log('Session ID:', document.cookie);
         // Continue with further actions
+        Swal.fire({
+          title: 'Login Successful',
+          text: 'Redirecting to movie page...',
+          icon: 'success',
+          showConfirmButton: false,
+        });
+
+        // Redirect to the movie page after 3 seconds
+        setIsLoggedIn(true);
+
+    // Redirect to movies page
+    navigate('/movies/');
 
       } else {
         console.log('Session ID not found in response headers');
@@ -43,6 +99,16 @@ const Login = () => {
       //  }, 10000);
       })
       .catch(error => {
+        if (error.response && error.response.status === 401) {
+          // Invalid email or password
+          Swal.fire({
+            title: 'Invalid Credentials',
+            text: 'Please enter a valid email and password.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+          });
+        }
+        else 
         if (error.response && error.response.status === 307) {
           const redirectUrl = error.response.headers.location;
           // Follow the redirect by making a new request to the provided URL

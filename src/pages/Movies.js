@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Container, Typography, Card, CardContent, Grid, Pagination,CardMedia } from '@mui/material';
 import axios from 'axios';
 
@@ -9,6 +9,7 @@ axios.defaults.headers.common['Access-Control-Allow-Methods'] = 'GET, POST, OPTI
 axios.defaults.headers.common['Access-Control-Allow-Headers'] = 'Content-Type';
 
 const Movies = () => {
+
   const [movies, setMovies] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -30,6 +31,7 @@ const Movies = () => {
 
     fetchMovies();
   }, [page]);
+
 
   const handlePageChange = (event, value) => {
     setPage(value);

@@ -1,45 +1,128 @@
-import React,{useState} from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Container, Typography, Grid, Button, Box } from '@mui/material';
 import SeatIcon from '@mui/icons-material/EventSeat';
+import Swal from 'sweetalert2';
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+};
 
 const SeatingDetails = () => {
-  // Mock data for seats
-  const seats = [
-    { id: 1, row: 'Royal', seatNumber: 1, price: 150, isAvailable: true },
-    { id: 2, row: 'Royal', seatNumber: 2, price: 150, isAvailable: true },
-    { id: 3, row: 'Royal', seatNumber: 3, price: 150, isAvailable: false },
-    { id: 4, row: 'Royal', seatNumber: 4, price: 150, isAvailable: false },
-    { id: 5, row: 'Royal', seatNumber: 5, price: 150, isAvailable: false },
-    // Add more seats...
-    { id: 11, row: 'Premium', seatNumber: 1, price: 250, isAvailable: true },
-    { id: 12, row: 'Premium', seatNumber: 2, price: 250, isAvailable: true },
-    { id: 13, row: 'Premium', seatNumber: 3, price: 250, isAvailable: false },
-    { id: 14, row: 'Premium', seatNumber: 4, price: 250, isAvailable: false },
-    { id: 15, row: 'Premium', seatNumber: 5, price: 250, isAvailable: false },
-    // Add more seats...
-    { id: 21, row: 'Executive', seatNumber: 1, price: 500, isAvailable: true },
-    { id: 22, row: 'Executive', seatNumber: 2, price: 500, isAvailable: true },
-    { id: 23, row: 'Executive', seatNumber: 3, price: 500, isAvailable: false },
-    { id: 24, row: 'Executive', seatNumber: 4, price: 500, isAvailable: false },
-    { id: 25, row: 'Executive', seatNumber: 5, price: 500, isAvailable: false },
-    // Add more seats...
-  ];
+  const [seats, setSeats] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
+
+  useEffect(() => {
+    const fetchSeats = async () => {
+      try {
+        axios.defaults.withCredentials = true;
+
+        const sessionID = getCookie('session-id');
+
+        const response = await axios.get('http://localhost:9010/seats', {
+          headers: {
+            'Session-ID': sessionID,
+          },
+          withCredentials: true,
+        });
+
+        setSeats(response.data);
+      } catch (error) {
+        console.error('Error fetching seats:', error);
+      }
+    };
+
+    fetchSeats();
+  }, []);
+
   const handleSeatClick = (seat) => {
-    if (seat.isAvailable) {
-      const isSeatSelected = selectedSeats.find((selectedSeat) => selectedSeat.id === seat.id);
+    if (!seat.is_booked) {
+      const isSeatSelected = selectedSeats.find((selectedSeat) => selectedSeat.ID === seat.ID);
       if (isSeatSelected) {
-        setSelectedSeats((prevSelectedSeats) =>
-          prevSelectedSeats.filter((selectedSeat) => selectedSeat.id !== seat.id)
-        );
+        setSelectedSeats((prevSelectedSeats) => prevSelectedSeats.filter((selectedSeat) => selectedSeat.ID !== seat.ID));
       } else {
         setSelectedSeats((prevSelectedSeats) => [...prevSelectedSeats, seat]);
       }
     }
   };
-  const calculateTotalAmount = () => {
-    return selectedSeats.reduce((total, seat) => total + seat.price, 0);
+
+  const calculatePrice = (seatType) => {
+    if (seatType === 1) {
+      return 150;
+    } else if (seatType === 2) {
+      return 200;
+    } else if (seatType === 3) {
+      return 250;
+    } else {
+      return 0;
+    }
   };
+
+  const calculateTotalAmount = () => {
+    return selectedSeats.reduce((total, seat) => total + calculatePrice(seat.seat_type_id), 0);
+  };
+
+  const additionalSeats = [];
+  const rows = ['A', 'B', 'C'];
+  let uniqueKey = 0;
+
+  rows.forEach((row) => {
+    const rowSeats = seats.filter((seat) => seat.seat_number.startsWith(row));
+    for (let i = 1; i <= 5; i++) {
+      const seatNumber = `${row}-${i}`;
+      const isBooked = rowSeats.some((seat) => seat.seat_number === seatNumber && seat.is_booked);
+      const seat = {
+        ID: uniqueKey,
+        seat_number: seatNumber,
+        seat_type_id: row === 'A' ? 1 : row === 'B' ? 2 : 3,
+        is_booked: isBooked,
+        price: 0,
+      };
+      additionalSeats.push(seat);
+      uniqueKey++;
+    }
+  });
+
+  const generateBill = async () => {
+    try {
+      const sessionID = getCookie('session-id');
+
+      for (const seat of selectedSeats) {
+        const requestBody = {
+          show_id: 1,
+          seat_number: seat.seat_number,
+          seat_type_id: seat.seat_type_id,
+          is_booked: true,
+        };
+        console.log(requestBody)
+        await axios.post('http://localhost:9010/seats', requestBody, {
+          headers: {
+            'Session-ID': sessionID,
+          },
+          withCredentials: true,
+        });
+        Swal.fire({
+          title: 'Seat Booked!',
+          text: `Seat ${seat.seat_number} has been booked successfully.`,
+          icon: 'success',
+          confirmButtonText: 'OK',
+        });
+      }
+
+      setSelectedSeats([]);
+
+      // Navigate to the "booking" route
+      setTimeout(() => {
+        window.location.href = '/booking';
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error generating bill:', error);
+    }
+
+  };
+
   return (
     <Container maxWidth="md">
       <Typography variant="h4" component="h1" align="center" gutterBottom mt={5}>
@@ -48,15 +131,18 @@ const SeatingDetails = () => {
 
       <Box display="flex" justifyContent="center" mt={5}>
         <Grid container spacing={2}>
-          {seats.map((seat) => (
-            <Grid item xs={2} key={seat.id}>
+          {additionalSeats.map((seat) => (
+            <Grid item xs={2} key={seat.ID}>
               <Button
                 variant={selectedSeats.includes(seat) ? 'contained' : 'outlined'}
                 startIcon={<SeatIcon />}
-                disabled={!seat.isAvailable}
+                disabled={seat.is_booked}
                 onClick={() => handleSeatClick(seat)}
+                style={{
+                  backgroundColor: selectedSeats.includes(seat) ? 'yellow' : seat.is_booked ? 'grey' : 'blue',
+                }}
               >
-                {seat.row} {seat.seatNumber} ({seat.price})
+                {seat.seat_number}
               </Button>
             </Grid>
           ))}
@@ -69,9 +155,9 @@ const SeatingDetails = () => {
           </Typography>
           <Grid container spacing={2}>
             {selectedSeats.map((seat) => (
-              <Grid item xs={2} key={seat.id}>
-                <Button variant="contained" startIcon={<SeatIcon />}>
-                  {seat.row} {seat.seatNumber}
+              <Grid item xs={2} key={seat.ID}>
+                <Button variant="contained" startIcon={<SeatIcon />} style={{ backgroundColor: 'yellow' }}>
+                  {seat.seat_number}
                 </Button>
               </Grid>
             ))}
@@ -79,8 +165,8 @@ const SeatingDetails = () => {
           <Typography variant="h6" component="p" gutterBottom>
             Total Amount: {calculateTotalAmount()}
           </Typography>
-          <Button variant="contained" color="primary">
-            Generate Bill
+          <Button variant="contained" color="primary" onClick={generateBill}>
+            Select Seats
           </Button>
         </Box>
       )}

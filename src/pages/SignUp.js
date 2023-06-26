@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Container, Typography, TextField, Button, Grid, Alert } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 import CryptoJS from 'crypto-js';
+import Swal from 'sweetalert2';
 
 import axios from 'axios';
 
@@ -12,7 +13,9 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
   const [passwordMatchError, setPasswordMatchError] = useState(false);
-
+  const [nameError, setNameError] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -21,7 +24,24 @@ const SignUp = () => {
       setPasswordMatchError(true);
       return;
     }
+     // Validate name
+     if (name.trim() === '') {
+      setNameError(true);
+      return;
+    }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError(true);
+      return;
+    }
 
+    // Check password strength
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()])[A-Za-z\d!@#$%^&*()]{8,16}$/;
+    if (!passwordRegex.test(password)) {
+      setPasswordStrength('Weak');
+      return;
+    }
     try {
 
       const hashedPassword = CryptoJS.SHA256(password).toString();
@@ -33,20 +53,53 @@ const SignUp = () => {
         password:hashedPassword,
       });
 
-      if (response.status === 200) {
+      if (response.status === 201) {
         setIsRegistered(true);
         setName('');
         setEmail('');
         setPassword('');
         setConfirmPassword('');
+        Swal.fire({
+          title: 'Registration Successful',
+          text: 'Please check your email for verification.',
+          icon: 'success',
+          confirmButtonText: 'OK',
+        }).then(() => {
+          window.location.href = '/login'; // Redirect to login page
+        });
       } else {
         setIsRegistered(false);
       }
     } catch (error) {
-      console.error('Error:', error);
+      if (error.response && error.response.status === 400) {
+        // Email verification failed
+        Swal.fire({
+          title: 'Email Not Verified',
+          text: 'Email verification failed. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+        });
+      } else if (error.response && error.response.status === 500) {
+        // Failed to create user
+        Swal.fire({
+          title: 'Registration Failed',
+          text: 'Failed to create user. Please try again later.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+        });
+      } else {
+        // Other errors
+        console.error(error);
+        Swal.fire({
+          title: 'Error',
+          text: 'An error occurred. Please try again later.',
+          icon: 'error',
+          confirmButtonText: 'OK',
+        });
+      }
+    
       setIsRegistered(false);
-    }
-  };
+    }}
 
   return (
     <Container maxWidth="sm" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -62,10 +115,26 @@ const SignUp = () => {
         )}
 
         {passwordMatchError && (
-          <Alert severity="error" sx={{ marginTop: '1rem' }}>
+          <Alert severity="error" sx={{ marginTop: '1rem',padding:"2%" }}>
             Passwords do not match.
           </Alert>
         )}
+        {nameError && (
+          <Alert severity="error" sx={{ marginTop: '1rem',padding:"2%" }}>
+            Please enter a name.
+          </Alert>
+        )}
+
+        {emailError && (
+          <Alert severity="error" sx={{ marginTop: '1rem',padding:"2%" }}>
+            Please enter a valid email address.
+          </Alert>
+        )}
+          {!passwordMatchError && passwordStrength === 'Weak' && (
+        <Alert severity="error" sx={{ marginTop: '1rem',padding:"2%" }}>
+          Password should contain at least one uppercase letter, one lowercase letter, one digit, one special character (!@#$%^&*()), and be 8-16 characters in length.
+        </Alert>
+      )}
 
         <Grid container spacing={2}>
           <Grid item xs={12}>
@@ -76,7 +145,9 @@ const SignUp = () => {
               label="Name"
               variant="outlined"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {setName(e.target.value); 
+                setNameError(false);}}
+                error={nameError}
             />
           </Grid>
           <Grid item xs={12}>
@@ -87,7 +158,11 @@ const SignUp = () => {
               label="Email"
               variant="outlined"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(false);
+              }}
+              error={emailError}
             />
           </Grid>
           <Grid item xs={12}>
@@ -113,6 +188,13 @@ const SignUp = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
+          </Grid>
+          <Grid item xs={12}>
+            {password && (
+              <Typography variant="body2" color={passwordStrength === 'Strong' ? 'success' : 'error'}>
+                Password Strength: {passwordStrength}
+              </Typography>
+            )}
           </Grid>
           <Grid item xs={12} style={{ display: 'flex', justifyContent: 'center' }}>
             <Button type="submit" variant="contained" color="primary" sx={{ width: '100%' }}  endIcon={<SendIcon />}>
