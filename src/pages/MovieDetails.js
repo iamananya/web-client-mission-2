@@ -17,8 +17,9 @@ import {
 import axios from "axios";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
+import Swal from 'sweetalert2';
 
-const MovieDetails = ({isLoggedIn}) => {
+const MovieDetails = ({isLoggedIn,handleTicketDetails,handleShowDetails}) => {
   const { movieId } = useParams();
   const [show, setShow] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -55,6 +56,7 @@ const MovieDetails = ({isLoggedIn}) => {
     fetchMovieDetails();
   }, [movieId]);
 
+  handleShowDetails(movieId);
   const handleDateChange = (date) => {
     setSelectedDate(date);
   };
@@ -69,9 +71,16 @@ const MovieDetails = ({isLoggedIn}) => {
       console.log(selectedShowtime);
       // Perform ticket booking or any other action with selectedShowtime and selectedDate
       console.log("Ticket booked!", selectedShowtime, selectedDate);
+      handleTicketDetails(selectedShowtime,selectedDate)
       setShowDetails(true);
+      navigate("/seating")
     } else {
       console.log("Please select a showtime and date.");
+      Swal.fire({
+        icon: "warning",
+        title: "Reminder",
+        text: "Please choose a showtime before proceeding.",
+      });
     }
   }else{
     navigate("/login")
@@ -238,7 +247,7 @@ const MovieDetails = ({isLoggedIn}) => {
                 color="primary"
                 onClick={handleBookTicket}
               >
-                 <Link to={{ pathname: `/seating` }}>Choose Seat</Link>
+                 Choose Seat
               </Button>
 
               {showDetails && (

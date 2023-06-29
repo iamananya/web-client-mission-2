@@ -46,8 +46,8 @@ const Movies = () => {
 
   return (
     <Container>
-      <Typography variant="h4" component="h1">
-        Movies Page
+      <Typography variant="h4" component="h1" align='center' mt={2}>
+       Movies ...
       </Typography>
 
       <Grid container spacing={2} style={{ marginTop: '2rem' }}>
@@ -65,7 +65,7 @@ const Movies = () => {
                 <Typography variant="body2" color="textSecondary">
                   Rating: {movie.rating}
                 </Typography>
-                <Link to={{ pathname: `/movies/${movie.ID}`, state: { movie } }}>View Details</Link>
+                <Link  to={{ pathname: `/movies/${movie.ID}`, state: { movie } }}>View Details</Link>
               </CardContent>
             </Card>
           </Grid>

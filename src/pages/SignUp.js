@@ -3,6 +3,7 @@ import { Container, Typography, TextField, Button, Grid, Alert } from '@mui/mate
 import { Send as SendIcon } from '@mui/icons-material';
 import CryptoJS from 'crypto-js';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
 import axios from 'axios';
 
@@ -16,6 +17,8 @@ const SignUp = () => {
   const [nameError, setNameError] = useState(false);
   const [emailError, setEmailError] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
+  const navigate = useNavigate();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -25,10 +28,12 @@ const SignUp = () => {
       return;
     }
      // Validate name
-     if (name.trim() === '') {
+     const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(name)) {
       setNameError(true);
       return;
     }
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -52,6 +57,12 @@ const SignUp = () => {
         email,
         password:hashedPassword,
       });
+      Swal.fire({
+        title: 'Please wait ',
+        text: 'Please wait until correct response',
+        icon: 'info',
+        confirmButtonText: 'OK',
+      })
 
       if (response.status === 201) {
         setIsRegistered(true);
@@ -65,7 +76,7 @@ const SignUp = () => {
           icon: 'success',
           confirmButtonText: 'OK',
         }).then(() => {
-          window.location.href = '/login'; // Redirect to login page
+          navigate('/login');
         });
       } else {
         setIsRegistered(false);

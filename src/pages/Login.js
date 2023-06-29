@@ -6,7 +6,7 @@ import CryptoJS from 'crypto-js';
 import Swal from 'sweetalert2';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-const Login = ({ setIsLoggedIn }) => {
+const Login = ({ setIsLoggedIn ,showID}) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -65,7 +65,10 @@ const Login = ({ setIsLoggedIn }) => {
       withCredentials:true
         })
       .then(response => {
-        console.log(response.headers);
+        console.log(response);
+        const { message, user_id } = response.data;
+        localStorage.setItem('user_id', user_id);
+
        // Get the session ID from the response
        const sessionID = response.headers['session-id'];
        if (sessionID) {
@@ -76,8 +79,8 @@ const Login = ({ setIsLoggedIn }) => {
           console.log('Session ID:', document.cookie);
         // Continue with further actions
         Swal.fire({
-          title: 'Login Successful',
-          text: 'Redirecting to movie page...',
+          title: message,
+          text: 'Redirecting to movie details page...',
           icon: 'success',
           showConfirmButton: false,
         });
