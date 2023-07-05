@@ -71,9 +71,9 @@ const TransactionHistoryPage = ({ userID, showID }) => {
 
   return (
     <Container maxWidth="md">
-      <Typography variant="h4" component="h1" align="center" gutterBottom mt={5}>
-        Transaction History
-      </Typography>
+      <Typography variant="h8" component="h2" align="left" gutterBottom mt={5}>
+          Transaction History 
+        </Typography>
 
       <TableContainer>
         <Table>
@@ -90,7 +90,7 @@ const TransactionHistoryPage = ({ userID, showID }) => {
             {getPaginatedTransactions().map((transaction) => (
               <TableRow key={transaction.booking_id}>
                 <TableCell>{transaction.booking_id}</TableCell>
-                <TableCell>{transaction.amount_paid}</TableCell>
+                <TableCell> ₹{transaction.amount_paid}</TableCell>
                 <TableCell>
                   {transaction.seats_booked
                     .filter((seat) => seat.show_id === transaction.show_id)

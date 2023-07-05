@@ -23,6 +23,7 @@ const SeatingDetails = ({
   const navigate = useNavigate();
   const [totalAmount, setTotalAmount] = useState(0); // New state variable for total amount
   const [ticketPrices, setTicketPrices] = useState([]);
+  const [seatAvailability, setSeatAvailability] = useState({});
 
   useEffect(() => {
     const fetchSeats = async () => {
@@ -38,8 +39,14 @@ const SeatingDetails = ({
             withCredentials: true,
           }
         );
-
-        setSeats(response.data);
+        const seatsData = response.data;
+        const availability = {};
+        seatsData.forEach((seat) => {
+          availability[seat.ID] = seat.is_booked;
+        });
+    
+        setSeats(seatsData);
+        setSeatAvailability(availability);
       } catch (error) {
         console.error("Error fetching seats:", error);
       }
@@ -71,35 +78,39 @@ const SeatingDetails = ({
     fetchTicketPrices();
   }, [showID]);
 console.log("showid",showID)
-  const handleSeatClick = (seat) => {
-    if (!seat.is_booked) {
-      const isSeatSelected = selectedSeats.find(
-        (selectedSeat) => selectedSeat.ID === seat.ID && selectedSeat.show_id==seat.show_id
-      );
-      if (isSeatSelected) {
-        setSelectedSeats((prevSelectedSeats) =>
-          prevSelectedSeats.filter(
-            (selectedSeat) => selectedSeat.ID !== seat.ID || selectedSeat.show_id !== seat.show_id
-          )
-        );
-      } else {
-        setSelectedSeats((prevSelectedSeats) => [...prevSelectedSeats,{ ...seat, show_id: parseInt(showID) }]);
-      }
-    }
-    console.log("Seats:", selectedSeats);
-  };
+
+const handleSeatClick = (seat) => {
+  const isSeatSelected = selectedSeats.find(
+    (selectedSeat) => selectedSeat.ID === seat.ID
+  );
+  if (isSeatSelected) {
+    setSelectedSeats((prevSelectedSeats) =>
+      prevSelectedSeats.filter((selectedSeat) => selectedSeat.ID !== seat.ID)
+    );
+  } else  if (!seatAvailability[seat.ID]) {
+    setSelectedSeats((prevSelectedSeats) => [...prevSelectedSeats, seat]);
+  } else {
+    Swal.fire({
+      icon: "error",
+      title: "Seat Unavailable",
+      text: "This seat has already been booked by another user.",
+    });
+    
+  }
+
+  console.log("Seats:", selectedSeats);
+};
   const userid = localStorage.getItem("user_id");
   const calculatePrice = (seatType) => {
-    const price = ticketPrices[seatType-1]
-    console.log("price",price)
-    return price ? price.price : 0;
+    const price = ticketPrices.find((price) => price.seat_type_id === seatType);
+  return price ? price.price : 0;
   };
 
   const calculateTotalAmount = () => {
     return selectedSeats.reduce(
       (total, seat) => total + calculatePrice(seat.seat_type_id),
       0
-    );
+    ).toFixed(2);;
   };
 
   useEffect(() => {
@@ -119,13 +130,15 @@ console.log("showid",showID)
       const isBooked = rowSeats.some(
         (seat) => seat.seat_number === seatNumber && seat.is_booked
       );
+      const seatType = row === "A" ? 1 : row === "B" ? 2 : 3;
+      const price = calculatePrice(seatType);
       const seat = {
         ID: uniqueKey,
         seat_number: seatNumber,
         show_id:showID,
         seat_type_id: row === "A" ? 1 : row === "B" ? 2 : 3,
         is_booked: isBooked,
-        price: 0,
+        price: price,
       };
       additionalSeats.push(seat);
       uniqueKey++;
@@ -133,59 +146,21 @@ console.log("showid",showID)
   });
 
   const generateBill = async () => {
-    try {
-      handleSelectedSeats(selectedSeats);
-
-      const sessionID = getCookie("session-id");
-
-      for (const seat of selectedSeats) {
-        const requestBody = {
-          show_id: parseInt(showID),
-          seat_number: seat.seat_number,
-          seat_type_id: seat.seat_type_id,
-          is_booked: true,
-          user_id: parseInt(userid),
-        };
-        console.log(requestBody);
-        try {
-          await axios.post("http://localhost:9010/seats", requestBody, {
-            headers: {
-              "Session-ID": sessionID,
-            },
-            withCredentials: true,
-          });
-          Swal.fire({
-            title: "Seat Booked!",
-            text: `Seat ${seat.seat_number} has been booked successfully.`,
-            icon: "success",
-            confirmButtonText: "OK",
-          });
-        } catch (error) {
-          if (error.response && error.response.status === 409) {
-            Swal.fire({
-              title: "Seat Already Booked",
-              text: `Seat ${seat.seat_number} is already booked. Please select another seat.`,
-              icon: "error",
-              confirmButtonText: "OK",
-            });
-            // Mark the seat as booked
-            seat.is_booked = true;
-          } else {
-            console.error("Error generating bill:", error);
-          }
-        }
-      }
-
-      setSelectedSeats([]);
-
-      // Navigate to the "booking" route
-      navigate("/booking", {
-        state: { showtime: selectedShowtime, date: selectedDate },
+    if (selectedSeats.some((seat) => seatAvailability[seat.ID])) {
+      Swal.fire({
+        icon: "error",
+        title: "Seat Unavailable",
+        text: "One or more selected seats have already been booked by another user.",
       });
-    } catch (error) {
-      console.error("Error generating bill:", error);
+      return;
     }
-  };
+  
+    handleSelectedSeats(selectedSeats);
+    navigate("/booking", {
+      state: { showtime: selectedShowtime, date: selectedDate },
+    });
+    } 
+
 
   return (
     <Container maxWidth="md">
@@ -199,19 +174,20 @@ console.log("showid",showID)
         Seating Details
       </Typography>
       <Typography align="left" gutterBottom mt={5}>
-        <h3>Please select Seating Details from the gives seats.</h3>
+        <h3>Please select a seat by clicking on the blue seats. Click again to remove the seat.</h3>
         <Button
           startIcon={<SeatIcon />}
           style={{ backgroundColor: "blue" }}
         ></Button>{" "}
-        The Seats depected in blue are the empty seats.
+        Empty Seats
         <br />
         <Button
           startIcon={<SeatIcon />}
           style={{ backgroundColor: "grey", marginTop: "1%" }}
         ></Button>{" "}
-        The Seats depicted in grey are the filled seats
+        Filled Seats
       </Typography>
+     
       <Box display="flex" justifyContent="center" mt={5}>
         <Grid container spacing={2}>
           {additionalSeats.map((seat) => (
@@ -239,7 +215,7 @@ console.log("showid",showID)
       </Box>
       {selectedSeats.length > 0 && (
         <Box mt={3}>
-          <Typography variant="h5" component="h2" gutterBottom>
+          <Typography variant="h6" component="h4" gutterBottom>
             Selected Seats:
           </Typography>
           <Grid container spacing={2}>
@@ -255,7 +231,7 @@ console.log("showid",showID)
               </Grid>
             ))}
           </Grid>
-          <Typography variant="h6" component="p" gutterBottom>
+          <Typography variant="h6" component="h4" gutterBottom>
             Total Amount: {calculateTotalAmount()}
           </Typography>
           <Button variant="contained" color="primary" onClick={generateBill}>

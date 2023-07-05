@@ -7,9 +7,14 @@ const Navbar = ({ isLoggedIn, handleLogout }) => {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>
          Book My movie
+         </Link>
         </Typography>
         <div>
+        <Button color="inherit" component={Link} to="/">
+                Movies
+              </Button>
           {!isLoggedIn ? (
             <>
               <Button color="inherit" component={Link} to="/login">

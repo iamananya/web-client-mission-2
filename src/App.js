@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useNavigate,
   useAsyncError,
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
@@ -13,26 +14,48 @@ import Movies from "./pages/Movies";
 import SeatingDetails from "./pages/SeatingDetails";
 import BookingPage from "./pages/Booking";
 import MovieDetails from "./pages/MovieDetails";
+import VerifyEmail from "./pages/VerifyEmail";
+
+const NotFound = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const redirectTimeout = setTimeout(() => {
+      navigate("/");
+    }, 1000);
+
+    return () => {
+      clearTimeout(redirectTimeout);
+    };
+  }, [navigate]);
+
+  return <h1 style={{textAlign:"center"}}>Page Not Found. Redirecting to Home...</h1>;
+};
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedShowtime, setSelectedShowtime] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [selectedShow, setSelectedShow] = useState("");
   const [showID, setShowID] = useState();
-  const [amount,setAmount]=useState()
-  const handleShowDetails = (id) => {
+  const [amount, setAmount] = useState();
+
+  const handleShowDetails = (id, show) => {
     setShowID(id);
+    setSelectedShow(show);
   };
-  const handleTotalAmount=(cost)=>{
-    console.log(cost)
+
+  const handleTotalAmount = (cost) => {
+    console.log(cost);
     setAmount(cost);
-    
   };
+
   const handleSelectedSeats = (seats) => {
     console.log("Selected Seats:", seats);
     setSelectedSeats(seats);
   };
+
   const handleTicketDetails = (showtime, date) => {
     const formattedDate = date.toLocaleDateString();
 
@@ -40,23 +63,23 @@ const App = () => {
     const formattedShowtime = showtimeDate.toLocaleTimeString([], {
       hour: "numeric",
       minute: "2-digit",
-     
     });
 
     setSelectedShowtime(formattedShowtime);
     setSelectedDate(formattedDate);
   };
-  console.log(selectedDate, selectedShowtime);
 
   const handleLogout = () => {
     // Implement your logout logic here
     setIsLoggedIn(false);
   };
+
   return (
     <Router>
       <Navbar isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
       <Routes>
         <Route path="/" element={<Navigate to="/movies" />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         <Route
           path="/movies"
@@ -66,7 +89,7 @@ const App = () => {
         {!isLoggedIn && (
           <Route
             path="/login"
-            element={<Login setIsLoggedIn={setIsLoggedIn} showID={showID}/>}
+            element={<Login setIsLoggedIn={setIsLoggedIn} showID={showID} />}
           />
         )}
 
@@ -103,9 +126,13 @@ const App = () => {
               selectedSeats={selectedSeats}
               showID={showID}
               amount={amount}
+              selectedShow={selectedShow}
             />
           }
         />
+
+        {/* Handle other routes */}
+        <Route path="/*" element={<NotFound />} />
       </Routes>
     </Router>
   );

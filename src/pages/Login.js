@@ -1,56 +1,17 @@
-import React, { useState ,useEffect} from 'react';
-import { Container, Typography, TextField, Button } from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Container, Typography, TextField, Button, IconButton } from '@mui/material';
+import { Send as SendIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
 import Swal from 'sweetalert2';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const Login = ({ setIsLoggedIn ,showID}) => {
+const Login = ({ setIsLoggedIn, showID }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-
+  const [isEmailVerified, setIsEmailVerified] = useState(false); // Define isEmailVerified state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
-  useEffect(() => {
-  const verifyUser = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-
-    if (token) {
-      try {
-        // Send a GET request to the verification endpoint
-        const response = await axios.get(`http://localhost:9010/register/verify?token=${token}`);
-
-        if (response.status === 200) {
-          setIsVerified(true);
-        } else {
-          setIsVerified(false);
-        }
-      } catch (error) {
-        
-        console.error('Error:', error);
-        setIsVerified(false);
-      }
-    }
-  };
-  verifyUser();
-
-}, []);
-
-  useEffect(() => {
-    if (isVerified) {
-      // Show the Swal message for successful verification
-      Swal.fire({
-        title: 'User Verified',
-        text: 'Your account has been successfully verified.',
-        icon: 'success',
-        confirmButtonText: 'OK',
-      });
-    }
-  }, [isVerified]);
-
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,48 +21,49 @@ const Login = ({ setIsLoggedIn ,showID}) => {
       email,
       password: hashedPassword,
     };
-   
-    axios.post('http://localhost:9010/login', formData,{
-      withCredentials:true
-        })
-      .then(response => {
+
+    axios
+      .post('http://localhost:9010/login', formData, {
+        withCredentials: true,
+      })
+      .then((response) => {
         console.log(response);
-        const { message, user_id } = response.data;
+        const { message, user_id, is_email_verified } = response.data;
+        console.log('response', response.data);
+        setIsEmailVerified(is_email_verified); // Set the isEmailVerified state based on the response
         localStorage.setItem('user_id', user_id);
 
-       // Get the session ID from the response
-       const sessionID = response.headers['session-id'];
-       if (sessionID) {
-        console.log(sessionID)
-    
+        // Get the session ID from the response
+        const sessionID = response.headers['session-id'];
+        if (sessionID) {
+          console.log(sessionID);
 
-        document.cookie = `session-id=${encodeURI(sessionID)}; path=/`;
+          document.cookie = `session-id=${encodeURI(sessionID)}; path=/`;
           console.log('Session ID:', document.cookie);
-        // Continue with further actions
-        Swal.fire({
-          title: message,
-          text: 'Redirecting to movie details page...',
-          icon: 'success',
-          showConfirmButton: false,
-        });
+          // Continue with further actions
+          Swal.fire({
+            title: message,
+            text: 'Redirecting to movie details page...',
+            icon: 'success',
+            showConfirmButton: false,
+          });
 
-        // Redirect to the movie page after 3 seconds
-        setIsLoggedIn(true);
+          // Redirect to the movie page after 3 seconds
+          setIsLoggedIn(true);
 
-    // Redirect to movies page
-    navigate('/movies/');
-
-      } else {
-        console.log('Session ID not found in response headers');
-        // Handle the case where session ID is not present
-      }
-       // Set the session ID as a cookie
-       // Redirect to the movie page
-      //  setTimeout(() => {
-      //    window.location.href = '/movies'; // Redirect to '/movies' after 10 seconds
-      //  }, 10000);
+          // Redirect to movies page
+          navigate('/movies/');
+        } else {
+          console.log('Session ID not found in response headers');
+          // Handle the case where session ID is not present
+        }
+        // Set the session ID as a cookie
+        // Redirect to the movie page
+        //  setTimeout(() => {
+        //    window.location.href = '/movies'; // Redirect to '/movies' after 10 seconds
+        //  }, 10000);
       })
-      .catch(error => {
+      .catch((error) => {
         if (error.response && error.response.status === 401) {
           // Invalid email or password
           Swal.fire({
@@ -110,24 +72,48 @@ const Login = ({ setIsLoggedIn ,showID}) => {
             icon: 'error',
             confirmButtonText: 'OK',
           });
-        }
-        else 
-        if (error.response && error.response.status === 307) {
+        } else if (error.response && error.response.status === 403) {
+          setIsEmailVerified(true);
+          console.log('verify', isEmailVerified);
+          if (isEmailVerified) {
+            // Email verified but invalid credentials
+            Swal.fire({
+              title: 'Invalid Password',
+              text: 'Please enter valid password.',
+              icon: 'error',
+              confirmButtonText: 'OK',
+            });
+          }
+        } else if (error.response && error.response.status === 417) {
+          // Email not verified
+          Swal.fire({
+            title: 'Email Not Verified',
+            text: `Please check email address ${email}. Your email address is not verified.`,
+            icon: 'error',
+            confirmButtonText: 'OK',
+          });
+        } else if (error.response && error.response.status === 307) {
           const redirectUrl = error.response.headers.location;
           // Follow the redirect by making a new request to the provided URL
-          axios.post(redirectUrl, formData)
-            .then(response => {
+          axios
+            .post(redirectUrl, formData)
+            .then((response) => {
               console.log(response.data);
               // Handle successful response
             })
-            .catch(error => {
+            .catch((error) => {
               console.error(error);
               // Handle error after following the redirect
             });
         } else {
           console.error(error);
           // Handle other errors
-        }});
+        }
+      });
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -142,25 +128,28 @@ const Login = ({ setIsLoggedIn ,showID}) => {
             variant="outlined"
             fullWidth
             margin="normal"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
             label="Password"
             variant="outlined"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             fullWidth
             margin="normal"
+            required
             value={password}
-            onChange={(e) => 
-              setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <IconButton onClick={togglePasswordVisibility} edge="end">
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              ),
+            }}
           />
-          <Button
-            type="submit"
-            variant="contained"
-            endIcon={<SendIcon />}
-            fullWidth
-          >
+          <Button type="submit" variant="contained" endIcon={<SendIcon />} fullWidth>
             Submit
           </Button>
         </form>
