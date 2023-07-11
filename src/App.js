@@ -15,7 +15,8 @@ import SeatingDetails from "./pages/SeatingDetails";
 import BookingPage from "./pages/Booking";
 import MovieDetails from "./pages/MovieDetails";
 import VerifyEmail from "./pages/VerifyEmail";
-
+import SingleTransactionPage from "./pages/SingleTransactionPage";
+import TransactionHistoryPage from "./pages/TransactionHistory";
 const NotFound = () => {
   const navigate = useNavigate();
 
@@ -130,6 +131,18 @@ const App = () => {
             />
           }
         />
+         <Route
+          path="/transaction-history"
+          element={
+            <TransactionHistoryPage
+              showID={showID}
+            
+            />
+          }
+        />
+        <Route path="/transaction-details/:transactionID" 
+        element={<SingleTransactionPage/>} />
+
 
         {/* Handle other routes */}
         <Route path="/*" element={<NotFound />} />

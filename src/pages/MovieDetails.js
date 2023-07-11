@@ -109,9 +109,12 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
   const isCurrentDate = selectedDate.toDateString() === new Date().toDateString();
 
   return (
-    <Container style={{ padding: "5%" }}>
+    <Container >
       {show && (
         <div>
+          <Typography variant="h4" component="h2" style={{color:"darkblue",fontWeight:"700",textAlign:"center",letterSpacing:2}}>
+                <h3>Movie Details</h3>
+              </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} md={4}>
               <CardMedia
@@ -122,13 +125,13 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
               />
             </Grid>
             <Grid item xs={12} md={8}>
-              <Typography variant="h4" component="h1" style={{color:"green",fontWeight:"700"}}>
+              <Typography variant="h5" component="h3" style={{color:"darkblue",fontWeight:"700"}}>
                 {show.title}
               </Typography>
-              <Typography variant="body1" component="p" style={{padding:"2px",fontSize:"20px"}}>
+              <Typography variant="body1" component="p" style={{padding:"2px",fontSize:"18px"}}>
                 {show.desc}
               </Typography>
-              <Typography variant="h5" component="h2" style={{ marginTop: "2rem",color:"blue",fontWeight:"600" }}>
+              <Typography variant="h5" component="h3" style={{ marginTop: "2rem",color:"darkblue",fontWeight:"600" }}>
                 Choose Time (24-hour format)
               </Typography>
               <Grid container spacing={2} style={{ margin: "0px", padding: "2%" }}>
@@ -167,7 +170,7 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
                         style={{
                           backgroundColor:
                             selectedShowtime === showtime.showtime_slot_1
-                              ? "blue"
+                              ? "darkblue"
                               : "white",
                           cursor: isShowtime1Clickable ? "pointer" : "not-allowed",
                         }}
@@ -191,7 +194,7 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
                         style={{
                           backgroundColor:
                             selectedShowtime === showtime.showtime_slot_2
-                              ? "blue"
+                              ? "darkblue"
                               : "white",
                           cursor: isShowtime2Clickable ? "pointer" : "not-allowed",
                         }}
@@ -215,7 +218,7 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
                         style={{
                           backgroundColor:
                             selectedShowtime === showtime.showtime_slot_3
-                              ? "blue"
+                              ? "darkblue"
                               : "white",
                           cursor: isShowtime3Clickable ? "pointer" : "not-allowed",
                         }}
@@ -239,7 +242,7 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
                         style={{
                           backgroundColor:
                             selectedShowtime === showtime.showtime_slot_4
-                              ? "blue"
+                              ? "darkblue"
                               : "white",
                           cursor: isShowtime4Clickable ? "pointer" : "not-allowed",
                         }}
@@ -263,7 +266,7 @@ const MovieDetails = ({ isLoggedIn, handleTicketDetails, handleShowDetails }) =>
                   );
                 })}
               </Grid>
-              <Typography variant="h5" component="h2" style={{ marginTop: "2rem" ,color:"blue",fontWeight:"600"}}>
+              <Typography variant="h5" component="h2" style={{ marginTop: "2rem" ,color:"darkblue",fontWeight:"600"}}>
                 Choose Date
               </Typography>
               <Typography variant="p" style={{color:"grey"}}>

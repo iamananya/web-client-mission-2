@@ -5,7 +5,7 @@ import axios from 'axios';
 
 // Set default headers for Axios requests
 axios.defaults.headers.common['Access-Control-Allow-Origin'] = 'http://localhost:9010';
-axios.defaults.headers.common['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+axios.defaults.headers.common['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS, PUT, DELETE';
 axios.defaults.headers.common['Access-Control-Allow-Headers'] = 'Content-Type';
 
 const Movies = () => {
@@ -47,7 +47,7 @@ const Movies = () => {
   return (
     <Container>
       <Typography variant="h4" component="h1" align='center' mt={2}>
-       Movies ...
+      <h3 style={{color:"darkblue",letterSpacing:2}}>Movies </h3>
       </Typography>
 
       <Grid container spacing={2} style={{ marginTop: '2rem' }}>

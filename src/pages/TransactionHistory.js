@@ -10,22 +10,24 @@ import {
   TableHead,
   TableRow,
   Box,
+  Button,
 } from "@mui/material";
 import Pagination from "@mui/material/Pagination";
-
+import { Link } from "react-router-dom";
 const getCookie = (name) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) return parts.pop().split(";").shift();
 };
 
-const TransactionHistoryPage = ({ userID, showID }) => {
+const TransactionHistoryPage = ({showID }) => {
   const [transactions, setTransactions] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 5;
-
+  const userID=localStorage.getItem("user_id");
   useEffect(() => {
+    
     const fetchTransactionHistory = async () => {
       try {
         axios.defaults.withCredentials = true;
@@ -42,6 +44,7 @@ const TransactionHistoryPage = ({ userID, showID }) => {
         );
 
         const transactionsData = response.data;
+        console.log("Transa data",transactionsData)
         if (transactionsData) {
           transactionsData.reverse();
 
@@ -71,8 +74,8 @@ const TransactionHistoryPage = ({ userID, showID }) => {
 
   return (
     <Container maxWidth="md">
-      <Typography variant="h8" component="h2" align="left" gutterBottom mt={5}>
-          Transaction History 
+      <Typography variant="h4" component="h2" align="center" gutterBottom mt={5}>
+          <h3 style={{color:"darkblue",letterSpacing:2}}>Transaction History </h3>
         </Typography>
 
       <TableContainer>
@@ -82,8 +85,7 @@ const TransactionHistoryPage = ({ userID, showID }) => {
               <TableCell>Transaction ID</TableCell>
               <TableCell>Amount Paid</TableCell>
               <TableCell>Seats Booked</TableCell>
-              <TableCell>Creation Date</TableCell>
-              <TableCell>Show ID</TableCell>
+              <TableCell>View Details</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -93,12 +95,14 @@ const TransactionHistoryPage = ({ userID, showID }) => {
                 <TableCell> ₹{transaction.amount_paid}</TableCell>
                 <TableCell>
                   {transaction.seats_booked
-                    .filter((seat) => seat.show_id === transaction.show_id)
+                    // .filter((seat) => seat.show_id === transaction.show_id)
                     .map((seat) => seat.seat_number)
                     .join(", ")}
                 </TableCell>
-                <TableCell>{transaction.creation_date}</TableCell>
-                <TableCell>{transaction.show_id}</TableCell>
+            
+                <TableCell><Button   component={Link}
+                to={`/transaction-details/${transaction.booking_id}`}
+                variant="outlined">View Details</Button></TableCell>
               </TableRow>
             ))}
           </TableBody>

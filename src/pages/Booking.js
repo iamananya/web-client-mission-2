@@ -16,6 +16,14 @@ import { TableChartOutlined } from "@mui/icons-material";
 import TransactionHistoryPage from "./TransactionHistory";
 import CardDetailsComponent from "../components/CardDetails";
 import CardDetails from "../components/CardDetails";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
+};
 const BookingPage = ({
   user,
   showID,
@@ -36,6 +44,7 @@ const BookingPage = ({
   const [showTransactionHistory, setShowTransactionHistory] = useState(false); // State variable to show/hide transaction history
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [showCardDetails, setShowCardDetails] = useState(false);
+  const navigate = useNavigate();
 
   const gstId = "33AAAAA5291P2ZD"; // Set your GST ID here
   const gstRate = 0.18; // 10% GST
@@ -45,13 +54,6 @@ const BookingPage = ({
   ).toFixed(2);;
   const gstAmount = (totalAmountBeforeGST * gstRate).toFixed(2);;
   const totalAmountAfterGST = (parseFloat(totalAmountBeforeGST) + parseFloat(gstAmount)).toFixed(2);
-
-  const getCookie = (name) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(";").shift();
-  };
-
   const userid = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -79,23 +81,7 @@ const BookingPage = ({
       axios.defaults.withCredentials = true;
       const sessionID = getCookie("session-id");
 
-      for (const seat of selectedSeats) {
         const requestBody = {
-          show_id: parseInt(showID),
-          seat_number: seat.seat_number,
-          seat_type_id: seat.seat_type_id,
-          is_booked: true,
-          user_id: parseInt(userid),
-        };
-        await axios.post("http://localhost:9010/seats", requestBody, {
-          headers: {
-            "Session-ID": sessionID,
-          },
-          withCredentials: true,
-        });
-      }
-
-      const requestBody = {
         user_id: parseInt(userid),
         show_id: parseInt(showID),
         payment_amount: parseFloat(totalAmountAfterGST),
@@ -114,7 +100,8 @@ const BookingPage = ({
 
       setBookingDetails(response.data);
       setPaymentComplete(true);
-      setShowTransactionHistory(false); // Show transaction history page after successful booking
+      setShowCardDetails(false)
+      setShowTransactionHistory(true); // Show transaction history page after successful booking
       Swal.fire({
         title: "Booking Successful!",
         text: `Seats booked: ${selectedSeats
@@ -142,11 +129,65 @@ const BookingPage = ({
       cancelButtonText: "Cancel",
     }).then((result) => {
       if (result.isConfirmed) {
-        setShowCardDetails(true); // Show the card details component
+        // Perform PUT requests for selected seats
+        if (selectedSeats.length > 0) {
+          selectedSeats.forEach(async (seat) => {
+            try {
+              axios.defaults.withCredentials = true;
+              const sessionID = getCookie("session-id");
+  
+              const response = await axios.put(
+                `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
+                null,
+                {
+                  headers: {
+                    "Session-ID": sessionID,
+                    "Content-Type": "application/json",
+                  },
+                  withCredentials: true,
+                }
+              );
+              console.log(response.data); // Log the response if needed
+            } catch (error) {
+              console.error("Error updating seat:", error);
+            }
+          });
+          setShowCardDetails(true); // Show the card details component
+        } else {
+          Swal.fire({
+            title: "No Seats Selected",
+            text: "Please select at least one seat to proceed with the payment.",
+            icon: "warning",
+            confirmButtonText: "OK",
+          });
+        }
+      } else {
+        // Perform DELETE requests for selected seats
+        selectedSeats.forEach(async (seat) => {
+          try {
+            axios.defaults.withCredentials = true;
+            const sessionID = getCookie("session-id");
+  
+            const response = await axios.delete(
+              `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
+              {
+                headers: {
+                  "Session-ID": sessionID,
+                },
+                withCredentials: true,
+              }
+            );
+            console.log(response.data); // Log the response if needed
+          } catch (error) {
+            console.error("Error deleting seat:", error);
+          }
+          navigate("/seating");
+        });
       }
     });
   };
-
+  
+  
   useEffect(() => {
     if (bookingDetails) {
       console.log("details", bookingDetails); // Use the booking details as required
@@ -167,10 +208,10 @@ const BookingPage = ({
           mt={5}
           style={{ textAlign: "center", fontWeight: "700" }}
         >
-          Booking Details
+           <h3 style={{color:"darkblue",letterSpacing:2}}>Booking Details </h3>
         </Typography>
-        <Typography variant="h8" component="h2" align="left" gutterBottom mt={5}>
-          Booking Summary
+        <Typography variant="h5" component="h2" align="left" gutterBottom mt={5}>
+        <h4 style={{color:"darkblue",letterSpacing:2}}>Booking Summary </h4>
         </Typography>
 
         <Box mt={3}>
@@ -206,12 +247,13 @@ const BookingPage = ({
                   <TableCell>
                     {selectedSeats.map((seat) => (
                       <Button
-                        variant="contained"
-                        startIcon={<SeatIcon color="action" style={{ color: "green" }} />}
+                        variant="outlined"
+                        startIcon={<SeatIcon color="action" style={{ color: "blue" }} />}
                         disabled
                         key={seat.ID}
+                        style={{backgroundColor:"lightblue"}}
                       >
-                        <span style={{color:"green"}}> {seat.seat_number}</span>
+                        <span style={{color:"blue"}}> {seat.seat_number}</span>
                       </Button>
                     ))}
                   </TableCell>
@@ -275,9 +317,9 @@ const BookingPage = ({
               gutterBottom
               style={{ fontWeight: "700", marginBottom: "10px" }}
             >
-              Booking Invoice:
+              Booking Successful
             </Typography>
-            <TableContainer>
+            {/* <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -312,7 +354,7 @@ const BookingPage = ({
                   </TableRow>
                 </TableBody>
               </Table>
-            </TableContainer>
+            </TableContainer> */}
           </Box>
         )}
 
@@ -326,28 +368,27 @@ const BookingPage = ({
 
 {!showCardDetails && (
   <Box mt={3} display="flex" justifyContent="center">
-    <Button variant="contained" color="primary" onClick={handlePayNow}>
-      Pay Now
-    </Button>
+   {!paymentComplete &&( <Button variant="contained" color="primary" onClick={handlePayNow}>
+      Make Payment
+    </Button>)}
   </Box>
 )}
         </Box>
         <Box mt={3} display="flex" justifyContent="center">
-          {paymentComplete && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleViewTransactionHistory}
-              style={{marginBottom:"2%"}}
-            >
-              View Transaction History
-            </Button>
-          )}
-        </Box>
+  {paymentComplete && (
+    <Button
+      variant="contained"
+      color="primary"
+      component={Link}
+      to="/transaction-history"
+      style={{ marginBottom: "2%" }}
+    >
+      View Transaction History
+    </Button>
+  )}
+</Box>
       </Container>
-      {showTransactionHistory && (
-        <TransactionHistoryPage userID={userid} showID={showID} />
-      )}
+     
     </div>
   );
 };
