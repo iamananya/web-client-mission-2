@@ -18,7 +18,7 @@ import CardDetailsComponent from "../components/CardDetails";
 import CardDetails from "../components/CardDetails";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-
+import WalletCard from "../components/WalletCard";
 const getCookie = (name) => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -51,9 +51,12 @@ const BookingPage = ({
   const totalAmountBeforeGST = selectedSeats.reduce(
     (total, seat) => total + seat.price,
     0
-  ).toFixed(2);;
+  ).toFixed(2);
+ 
   const gstAmount = (totalAmountBeforeGST * gstRate).toFixed(2);;
   const totalAmountAfterGST = (parseFloat(totalAmountBeforeGST) + parseFloat(gstAmount)).toFixed(2);
+  const ttk=0.0000065 ;
+  const token_amount=parseFloat(ttk*totalAmountAfterGST).toFixed(8);
   const userid = localStorage.getItem("user_id");
 
   useEffect(() => {
@@ -118,41 +121,74 @@ const BookingPage = ({
       });
     }
   };
+  const handleSeatUpdates = async (selectedSeats, showID, paymentComplete) => {
+    try {
+      if (selectedSeats.length > 0) {
+        selectedSeats.forEach(async (seat) => {
+          const sessionID = getCookie("session-id");
+          const requestOptions = {
+            headers: {
+              "Session-ID": sessionID,
+              "Content-Type": "application/json",
+            },
+            withCredentials: true,
+          };
 
-  const handlePayNow = () => {
-    Swal.fire({
-      title: "Proceed with Payment",
-      text: "Are you sure you want to proceed with the payment?",
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonText: "Proceed",
-      cancelButtonText: "Cancel",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // Perform PUT requests for selected seats
-        if (selectedSeats.length > 0) {
-          selectedSeats.forEach(async (seat) => {
-            try {
-              axios.defaults.withCredentials = true;
-              const sessionID = getCookie("session-id");
+          if (paymentComplete) {
+            await axios.put(
+              `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
+              null,
+              requestOptions
+            );
+          } else {
+            await axios.delete(
+              `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
+              requestOptions
+            );
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error updating/deleting seats:", error);
+    }
+  };
+  const handlePaymentSuccess = async () => {
+    try {
+      await generateBooking();
+
+      await handleSeatUpdates(selectedSeats, showID, true);
+
+      Swal.fire({
+        title: "Booking Successful!",
+        text: `Seats booked: ${selectedSeats
+          .map((seat) => seat.seat_number)
+          .join(", ")}`,
+        icon: "success",
+      });
+    } catch (error) {
+      console.error("Error handling payment success:", error);
+      Swal.fire({
+        title: "Booking Failed!",
+        text: "An error occurred while making the booking.",
+        icon: "error",
+      });
+    }
+  };
   
-              const response = await axios.put(
-                `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
-                null,
-                {
-                  headers: {
-                    "Session-ID": sessionID,
-                    "Content-Type": "application/json",
-                  },
-                  withCredentials: true,
-                }
-              );
-              console.log(response.data); // Log the response if needed
-            } catch (error) {
-              console.error("Error updating seat:", error);
-            }
-          });
-          setShowCardDetails(true); // Show the card details component
+  const handlePayNow = async () => {
+    try {
+      const result = await Swal.fire({
+        title: "Proceed with Payment",
+        text: "Are you sure you want to proceed with the payment?",
+        icon: "info",
+        showCancelButton: true,
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+      });
+
+      if (result.isConfirmed) {
+        if (selectedSeats.length > 0) {
+          setShowCardDetails(true);
         } else {
           Swal.fire({
             title: "No Seats Selected",
@@ -161,37 +197,24 @@ const BookingPage = ({
             confirmButtonText: "OK",
           });
         }
+        
       } else {
-        // Perform DELETE requests for selected seats
-        selectedSeats.forEach(async (seat) => {
-          try {
-            axios.defaults.withCredentials = true;
-            const sessionID = getCookie("session-id");
-  
-            const response = await axios.delete(
-              `http://localhost:9010/seats?seat_number=${seat.seat_number}&show_id=${showID}`,
-              {
-                headers: {
-                  "Session-ID": sessionID,
-                },
-                withCredentials: true,
-              }
-            );
-            console.log(response.data); // Log the response if needed
-          } catch (error) {
-            console.error("Error deleting seat:", error);
-          }
-          navigate("/seating");
-        });
+        await handleSeatUpdates(selectedSeats, showID, false);
+
+        navigate("/seating");
       }
-    });
+    } catch (error) {
+      console.error("Error in handlePayNow:", error);
+    }
   };
-  
+
   
   useEffect(() => {
     if (bookingDetails) {
       console.log("details", bookingDetails); // Use the booking details as required
     }
+    setShowCardDetails(false);
+
   }, [bookingDetails]);
 
   const handleViewTransactionHistory = () => {
@@ -304,6 +327,18 @@ const BookingPage = ({
                     ₹{totalAmountAfterGST}
                   </TableCell>
                 </TableRow>
+                <TableRow>
+                  <TableCell>INR In TTK Conversion</TableCell>
+                  <TableCell style={{ fontWeight: "600" }}>
+                  ₹1 INR = {ttk} TTK
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Amount in tokens</TableCell>
+                  <TableCell style={{ fontWeight: "600" }}>
+                   {token_amount} TTK
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </TableContainer>
@@ -319,54 +354,25 @@ const BookingPage = ({
             >
               Booking Successful
             </Typography>
-            {/* <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <StyledTableHeaderCell>User</StyledTableHeaderCell>
-                    <StyledTableHeaderCell>Email</StyledTableHeaderCell>
-                    <StyledTableHeaderCell>Seats</StyledTableHeaderCell>
-                    <StyledTableHeaderCell>
-                      Selected Time
-                    </StyledTableHeaderCell>
-                    <StyledTableHeaderCell>
-                      Selected Date
-                    </StyledTableHeaderCell>
-                    <StyledTableHeaderCell>
-                      Total Amount
-                    </StyledTableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>
-                      {bookingDetails.ticketDetails.user.name}
-                    </TableCell>
-                    <TableCell>
-                      {bookingDetails.ticketDetails.user.email}
-                    </TableCell>
-                    <TableCell>
-                      {selectedSeats.map((seat) => seat.seat_number).join(", ")}
-                    </TableCell>
-                    <TableCell>{selectedShowtime}</TableCell>
-                    <TableCell>{selectedDate}</TableCell>
-                    <TableCell> ₹{totalAmountAfterGST}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer> */}
           </Box>
         )}
 
-        <Box mt={3} display="flex" justifyContent="center">
-        {showCardDetails && (
-  <div>
-    {/* Card details component */}
-    <CardDetails onPayNow={generateBooking} />
-  </div>
-)}
+          
+          <Box mt={3} display="flex" justifyContent="center">
+          {showCardDetails && (
+            <div>
+              {/* WalletCard component */}
+              <WalletCard
+                onSubmit={handlePayNow}
+                selectedSeats={selectedSeats}
+                showID={showID}
+                handlePaymentSuccess={handlePaymentSuccess} 
+                token_amount={token_amount} // Pass the token_amount as a prop
+                />
+            </div>
+          )}
 
-{!showCardDetails && (
+{!showCardDetails &&  (
   <Box mt={3} display="flex" justifyContent="center">
    {!paymentComplete &&( <Button variant="contained" color="primary" onClick={handlePayNow}>
       Make Payment

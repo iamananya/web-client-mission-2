@@ -17,6 +17,7 @@ import MovieDetails from "./pages/MovieDetails";
 import VerifyEmail from "./pages/VerifyEmail";
 import SingleTransactionPage from "./pages/SingleTransactionPage";
 import TransactionHistoryPage from "./pages/TransactionHistory";
+import WalletCard from "./components/WalletCard";
 const NotFound = () => {
   const navigate = useNavigate();
 
@@ -136,6 +137,15 @@ const App = () => {
           element={
             <TransactionHistoryPage
               showID={showID}
+            
+            />
+          }
+        />
+                 <Route
+          path="/card"
+          element={
+            <WalletCard
+             
             
             />
           }

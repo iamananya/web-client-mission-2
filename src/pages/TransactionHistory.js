@@ -26,6 +26,8 @@ const TransactionHistoryPage = ({showID }) => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 5;
   const userID=localStorage.getItem("user_id");
+  const ttk=0.0000065 ;
+
   useEffect(() => {
     
     const fetchTransactionHistory = async () => {
@@ -83,7 +85,8 @@ const TransactionHistoryPage = ({showID }) => {
           <TableHead>
             <TableRow>
               <TableCell>Transaction ID</TableCell>
-              <TableCell>Amount Paid</TableCell>
+              <TableCell>Amount Paid in Tokens</TableCell>
+              <TableCell>Amount Paid in INR</TableCell>
               <TableCell>Seats Booked</TableCell>
               <TableCell>View Details</TableCell>
             </TableRow>
@@ -92,10 +95,12 @@ const TransactionHistoryPage = ({showID }) => {
             {getPaginatedTransactions().map((transaction) => (
               <TableRow key={transaction.booking_id}>
                 <TableCell>{transaction.booking_id}</TableCell>
-                <TableCell> ₹{transaction.amount_paid}</TableCell>
+                <TableCell> {((transaction.amount_paid)*ttk).toFixed(8)} TTK</TableCell>
+                <TableCell> ₹{(transaction.amount_paid)} </TableCell>
+
                 <TableCell>
-                  {transaction.seats_booked
-                    // .filter((seat) => seat.show_id === transaction.show_id)
+                {transaction.seats_booked
+                    .filter((seat) => seat.is_booked === true)
                     .map((seat) => seat.seat_number)
                     .join(", ")}
                 </TableCell>
